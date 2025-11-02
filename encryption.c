@@ -1,9 +1,7 @@
 /*Name: Qian Zhao
  *ID: 25777830
  * XOR Encryption Functions
- * 
- * IMPORTANT: Call srand(time(NULL)) once in main() before using generateKey()
- * 
+
  * Usage example:
  *   char data[] = "secret diary";
  *   xorEncrypt(data, strlen(data), "mypassword");

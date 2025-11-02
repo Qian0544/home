@@ -11,12 +11,12 @@ ID: 26130916
 #define MAX_ENTRY_SIZE 1024
 #define INPUT_BUFFER_SIZE 32
 
-/*Global state*/
+/* Global state */
 static DiaryEntry* diary_head = NULL;
 static char current_filename[256] = "diary.enc";
 static char encryption_key[256] = "";
 
-
+/* Display main menu */
 void displaymenue(void){
     printf("\n========================================\n");
     printf("       SECURE DIARY SYSTEM\n");
@@ -29,6 +29,7 @@ void displaymenue(void){
     printf("========================================\n");
 }
 
+/* Get user's menu choice */
 int getUserChoice(void){
     char buffer[INPUT_BUFFER_SIZE];
     int choice;
@@ -52,11 +53,7 @@ int getUserChoice(void){
     return choice;
 }
 
-
-
-
-/* Capture a diary entry
-   Returns 1 on success, 0 otherwise. */
+/* Create new diary entry */
 int diaryCreateEntry(DiaryEntry** head){
     char content[MAX_ENTRY_SIZE];
     char line[256];
@@ -68,18 +65,16 @@ int diaryCreateEntry(DiaryEntry** head){
     printf("Create New Diary Entry\n");
     printf("Type your entry below. Exit with 'end' on a new line\n");
     
-    /*Read lines until 'end'*/
+    /* Read lines until 'end' */
     while (1) {
         if (fgets(line, sizeof(line), stdin) == NULL) {
             break;
         }
         
-        /*Check for end character*/ 
         if (strcmp(line, "end\n") == 0 || strcmp(line, "end\r\n") == 0) {
             break;
         }
         
-        /*Check if buffer has space*/ 
         if (strlen(content) + strlen(line) >= MAX_ENTRY_SIZE - 1) {
             printf("Entry size limit reached.\n");
             break;
@@ -88,20 +83,19 @@ int diaryCreateEntry(DiaryEntry** head){
         strcat(content, line);
     }
     
-    /*Check if entry is empty*/ 
     if (strlen(content) == 0) {
         printf("No entry captured.\n");
         return 0;
     }
     
-    /* Generate timestamp*/
+    /* Get timestamp from user */
     timestamp = getCurrentTimestamp();
     if (!timestamp) {
         printf("Failed to generate timestamp.\n");
         return 0;
     }
     
-    /* Create entry*/
+    /* Create and add entry */
     entry = createEntry(timestamp, content);
     free(timestamp);
     
@@ -110,7 +104,6 @@ int diaryCreateEntry(DiaryEntry** head){
         return 0;
     }
     
-    /*Add to list*/
     addEntry(head, entry);
     
     printf("\n✓ Entry created successfully at %s\n", entry->datetime);
@@ -119,7 +112,7 @@ int diaryCreateEntry(DiaryEntry** head){
     return 1;
 }
 
-
+/* Display all diary entries */
 void diaryDisplayAllEntries(DiaryEntry* head){
     DiaryEntry* current = head;
     int count = 0;
@@ -140,7 +133,6 @@ void diaryDisplayAllEntries(DiaryEntry* head){
         printf("Words: %d\n", current->wordCount);
         printf("Content:\n%s", current->content);
         
-        /*Add newline if content doesn't end with one*/ 
         size_t len = strlen(current->content);
         if (len > 0 && current->content[len - 1] != '\n') {
             printf("\n");
@@ -155,17 +147,11 @@ void diaryDisplayAllEntries(DiaryEntry* head){
     printf("========================================\n");
 }
 
+/* Save diary to encrypted file */
 int diarySaveEncrypted(DiaryEntry* head, const char* filename, const char* key){
     if (!head) {
         printf("No entries to save. Create an entry first.\n");
         return 0;
-    }
-
-    DiaryEntry* temp = head;
-    int count = 0;
-    while (temp) {
-        count++;
-        temp = temp->next;
     }
     
     printf("\nSaving encrypted diary to '%s'\n", filename);
@@ -174,13 +160,14 @@ int diarySaveEncrypted(DiaryEntry* head, const char* filename, const char* key){
     return (result == 0) ? 1 : 0;
 }
 
+/* Load diary from encrypted file */
 int diaryLoadEncrypted(DiaryEntry** head, const char* filename, const char* key){
     if (!fileExists(filename)) {
         printf("File '%s' does not exist.\n", filename);
         return 0;
     }
     
-    /*Free existing entries*/
+    /* Free existing entries */
     if (*head) {
         freeAllEntries(*head);
         *head = NULL;
@@ -203,6 +190,7 @@ int diaryLoadEncrypted(DiaryEntry** head, const char* filename, const char* key)
     }
 }
 
+/* Set encryption password */
 static int setEncryptionKey(char* key_buffer, size_t buffer_size){
     char input[256];
     printf("Enter password (min 4 characters): ");
@@ -213,16 +201,13 @@ static int setEncryptionKey(char* key_buffer, size_t buffer_size){
         return 0;
     }
     
-    // Remove newline
     input[strcspn(input, "\r\n")] = '\0';
     
-    // Validate key
     if (!validateKey(input)) {
         printf("Invalid password. Must be at least 4 characters.\n");
         return 0;
     }
     
-    // Copy to buffer
     strncpy(key_buffer, input, buffer_size - 1);
     key_buffer[buffer_size - 1] = '\0';
     
@@ -230,8 +215,7 @@ static int setEncryptionKey(char* key_buffer, size_t buffer_size){
     return 1;
 }
 
-/* Search diary entries
-   Returns 1 on success, 0 otherwise. */
+/* Search diary entries by keyword or date */
 int diarySearchEntries(DiaryEntry* head) {
     char searchTerm[256];
     
@@ -249,7 +233,6 @@ int diarySearchEntries(DiaryEntry* head) {
         return 0;
     }
     
-    // Remove newline
     searchTerm[strcspn(searchTerm, "\r\n")] = '\0';
     
     if (strlen(searchTerm) == 0) {
@@ -257,7 +240,7 @@ int diarySearchEntries(DiaryEntry* head) {
         return 0;
     }
     
-    // Perform search
+    /* Search and get results */
     DiaryEntry* results = searchEntries(head, searchTerm);
     
     if (!results) {
@@ -265,7 +248,7 @@ int diarySearchEntries(DiaryEntry* head) {
         return 0;
     }
     
-    // Display results
+    /* Display results */
     DiaryEntry* current = results;
     int count = 0;
     
@@ -293,17 +276,16 @@ int diarySearchEntries(DiaryEntry* head) {
     printf("Found %d matching diary (diaries)\n", count);
     printf("========================================\n");
     
-    // Clean up search results
     freeAllEntries(results);
     
     return 1;
 }
-/* Delete a diary entry
-   Returns 1 on success, 0 otherwise. */
+
+/* Delete a diary entry by number */
 int diaryDeleteEntry(DiaryEntry** head) {
     DiaryEntry* current = *head;
     int count = 0, choice;
-    char* datetimes[100]; // Store up to 100 entry datetimes
+    char* datetimes[100];
     
     if (!current) {
         printf("No entries to delete.\n");
@@ -314,7 +296,7 @@ int diaryDeleteEntry(DiaryEntry** head) {
     printf("         DELETE DIARY ENTRY\n");
     printf("========================================\n\n");
     
-    /* Count and display entries */
+    /* Display all entries */
     while (current && count < 100) {
         datetimes[count] = current->datetime;
         count++;
@@ -323,7 +305,7 @@ int diaryDeleteEntry(DiaryEntry** head) {
     }
     
     printf("\nEnter entry number to delete (1-%d) or 0 to cancel: ", count);
-    char buffer[256]; // Assuming INPUT_BUFFER_SIZE is defined elsewhere
+    char buffer[256];
     
     if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
         printf("Input error.\n");
@@ -345,18 +327,15 @@ int diaryDeleteEntry(DiaryEntry** head) {
         return 0;
     }
     
-    /* Delete the selected entry using its datetime */
+    /* Delete selected entry */
     delEntry(head, datetimes[choice-1]);
     printf("Entry #%d deleted successfully.\n", choice);
     return 1;
 }
 
-
-
-
+/* Main diary menu loop */
 int diaryMenuLoop(void){
     int running = 1;
-
     
     printf("\n");
     printf("╔════════════════════════════════════════╗\n");
@@ -364,10 +343,9 @@ int diaryMenuLoop(void){
     printf("╚════════════════════════════════════════╝\n");
     printf("\n");
     
-    /* STEP 1: MANDATORY - Set encryption key */
+    /* Step 1: Set password */
     printf("To access your diary, you must set an encryption key(password).\n");
 
-    // Check if diary file exists
     int diaryExists = fileExists(current_filename);
     if (diaryExists) {
         printf("\n⚠️  IMPORTANT: An encrypted diary already exists.\n");
@@ -392,13 +370,12 @@ int diaryMenuLoop(void){
         return -1;
     }
 
-    /* STEP 2: Try to load diary entries automatically if file exists */
+    /* Step 2: Auto-load if diary exists */
     if (diaryExists) {
         printf("\nExisting diary found. Loading...\n");
         int loadSuccess = diaryLoadEncrypted(&diary_head, current_filename, encryption_key);
         
         if (!loadSuccess) {
-            // Load failed - wrong key!
             printf("\n╔════════════════════════════════════════╗\n");
             printf("║  ⚠️  FAILED TO LOAD DIARY!            ║\n");
             printf("╚════════════════════════════════════════╝\n");
@@ -418,7 +395,6 @@ int diaryMenuLoop(void){
                 return 0;
             }
             
-            // User chose option 2 - continue with empty diary
             printf("\n⚠️  WARNING: You are starting a NEW diary.\n");
             printf("    When you save, it will OVERWRITE your old diary!\n");
             printf("    Are you ABSOLUTELY SURE? (type 'YES' to confirm): ");
@@ -431,26 +407,25 @@ int diaryMenuLoop(void){
             }
             
             printf("\n⚠️  Proceeding with NEW empty diary...\n\n");
-            diary_head = NULL;  // Ensure it's empty
+            diary_head = NULL;
         }
     } else {
         printf("\nNo existing diary found. Starting fresh!\n");
     }
 
-    /* STEP 3: Main menu loop */
+    /* Step 3: Main menu */
     while (running) {
         displaymenue();
         int choice = getUserChoice();
         
         if (choice == -1) {
-            printf("Invalid input. Please enter a number 1-4.\n");
+            printf("Invalid input. Please enter a number 1-5.\n");
             continue;
         }
         
         switch (choice) {
             case 1:
                 if (diaryCreateEntry(&diary_head)) {
-                    /* Auto-save after creating entry */
                     diarySaveEncrypted(diary_head, current_filename, encryption_key);
                 }
                 break;
@@ -465,7 +440,6 @@ int diaryMenuLoop(void){
 
             case 4:
                 if (diaryDeleteEntry(&diary_head)) {
-                    /* Auto-save after deleting */
                    diarySaveEncrypted(diary_head, current_filename, encryption_key);
                 }
                 break;
@@ -475,13 +449,11 @@ int diaryMenuLoop(void){
                 printf("  Exiting Secure Diary System\n");
                 printf("========================================\n");
                 
-                /* Auto-save entries if they exist and key is set */
                 if (diary_head && strlen(encryption_key) > 0) {
                     printf("Auto-saving diary entries before exit...\n");
                     diarySaveEncrypted(diary_head, current_filename, encryption_key);
                 }
                 
-                /*Cleanup*/
                 if (diary_head) {
                     freeAllEntries(diary_head);
                     diary_head = NULL;
@@ -498,7 +470,6 @@ int diaryMenuLoop(void){
         
         if (running && choice != -1) {
             printf("Press Enter to continue");
-            /*Clear any remaining characters in input buffer*/
             int c;
             while ((c = getchar()) != '\n' && c != EOF);
         }
