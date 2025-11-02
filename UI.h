@@ -25,5 +25,6 @@ void diaryDisplayAllEntries(DiaryEntry* head);
 int diarySaveEncrypted(DiaryEntry* head, const char* filename, const char* key);
 int diaryLoadEncrypted(DiaryEntry** head, const char* filename, const char* key);
 int diaryDeleteEntry(DiaryEntry** head);
+int diarySearchEntries(DiaryEntry* head);
 #endif
 

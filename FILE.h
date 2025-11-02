@@ -1,7 +1,7 @@
 #ifndef FILE_H
 #define FILE_H
 
-#include <stddef.h>   /* for size_t */
+
 
 typedef struct DiaryEntry {
     char *datetime,              /* e.g., "YYYY-MM-DD" */
@@ -35,5 +35,8 @@ DiaryEntry* loadAllEntries(const char* filename, const char* key);
 void freeAllEntries(DiaryEntry *head);
 
 char* getCurrentTimestamp(void);
+
+/* Search function */
+DiaryEntry* searchEntries(DiaryEntry* head, const char* searchTerm);
 
 #endif /* FILE_H */

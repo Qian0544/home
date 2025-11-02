@@ -1,4 +1,3 @@
-#define _POSIX_C_SOURCE 200809L //tells the compiler to enable POSIX features strtok_r
 #include <stdio.h>    /* FILE, printf, etc. */
 #include <stdlib.h>   /* malloc, free, etc. */
 #include <string.h>   /* strlen, strcpy, etc. */
@@ -511,4 +510,42 @@ DiaryEntry* loadAllEntries(const char* filename, const char* key) {
     return entries;
 }
 
-// validateKey is already defined in encryption.h
+/* Search entries by date or content keyword
+   Returns a new linked list of matching entries (don't free original list!) */
+DiaryEntry* searchEntries(DiaryEntry* head, const char* searchTerm) {
+    DiaryEntry* results = NULL;
+    DiaryEntry* current = head;
+    
+    if (!head || !searchTerm || strlen(searchTerm) == 0) {
+        return NULL;
+    }
+    
+    printf("\nSearching for: '%s'\n", searchTerm);
+    
+    while (current) {
+        int match = 0;
+        
+        // Check if searchTerm is in the date
+        if (strstr(current->datetime, searchTerm) != NULL) {
+            match = 1;
+        }
+        
+        // Check if searchTerm is in the content
+        if (strstr(current->content, searchTerm) != NULL) {
+            match = 1;
+        }
+        
+        // If we found a match, create a copy and add to results
+        if (match) {
+            DiaryEntry* copy = createEntry(current->datetime, current->content);
+            if (copy) {
+                copy->wordCount = current->wordCount;
+                addEntry(&results, copy);
+            }
+        }
+        
+        current = current->next;
+    }
+    
+    return results;
+}
