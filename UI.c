@@ -6,7 +6,6 @@ ID: 26130916
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include "UI.h"
 
 #define MAX_ENTRY_SIZE 1024
@@ -290,9 +289,7 @@ int diaryDeleteEntry(DiaryEntry** head) {
 
 int diaryMenuLoop(void){
     int running = 1;
-    
-    // Initialize random seed for key generation
-    srand(time(NULL));
+
     
     printf("\n");
     printf("╔════════════════════════════════════════╗\n");

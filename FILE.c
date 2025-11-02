@@ -1,7 +1,6 @@
 #include <stdio.h>    /* FILE, printf, etc. */
 #include <stdlib.h>   /* malloc, free, etc. */
 #include <string.h>   /* strlen, strcpy, etc. */
-#include <time.h>
 #include "FILE.h"
 #include "compression.h"
 #include "encryption.h"
@@ -17,23 +16,63 @@ static char *xstrdup(const char *s) {
     return p;
 }
 
+// In FILE.c - replace getCurrentTimestamp
 char* getCurrentTimestamp() {
-    time_t now = time(NULL);
-    struct tm* t = localtime(&now);
-    
-    char* timestamp = malloc(20);  
+    char* timestamp = malloc(20);
     if (!timestamp) {
         return NULL;
     }
     
-    sprintf(timestamp, "%04d-%02d-%02d %02d:%02d",
-            t->tm_year + 1900,
-            t->tm_mon + 1,
-            t->tm_mday,
-            t->tm_hour,
-            t->tm_min);
+    char input[50];
+    int year, month, day, hour, minute;
     
-    return timestamp;
+    printf("\nEnter date and time for this entry:\n");
+    printf("Format: YYYY-MM-DD HH:MM (e.g., 2025-01-02 14:30)\n");
+    printf("Or press Enter to use a simple timestamp: ");
+    
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        free(timestamp);
+        return NULL;
+    }
+    
+    // Check if user just pressed Enter (empty input)
+    if (input[0] == '\n') {
+        // Use a simple counter-based timestamp
+        static int counter = 0;
+        counter++;
+        sprintf(timestamp, "Unspecified-Time-%d", counter);
+        return timestamp;
+    }
+    
+    // Try to parse the date/time
+    if (sscanf(input, "%d-%d-%d %d:%d", &year, &month, &day, &hour, &minute) == 5) {
+        // Validate ranges
+        if (year >= 1900 && year <= 2100 &&
+            month >= 1 && month <= 12 &&
+            day >= 1 && day <= 31 &&
+            hour >= 0 && hour <= 23 &&
+            minute >= 0 && minute <= 59) {
+            
+            sprintf(timestamp, "%04d-%02d-%02d %02d:%02d", year, month, day, hour, minute);
+            return timestamp;
+        }
+    }
+    
+    // Invalid format - ask user what to do
+    printf("Invalid format. Use current counter instead? (y/n): ");
+    char choice;
+    if (scanf("%c", &choice) == 1 && (choice == 'y' || choice == 'Y')) {
+        // Clear input buffer
+        while (getchar() != '\n');
+        
+        static int counter = 0;
+        counter++;
+        sprintf(timestamp, "Entry-%d", counter);
+        return timestamp;
+    }
+    
+    free(timestamp);
+    return NULL;  // User can try again
 }
 
 static int countWrds(const char *s) {
