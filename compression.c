@@ -6,8 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stddef.h>
-#include <stdbool.h>
 #include "compression.h"
 
 /******  *Function  :  initialise_Frequency
@@ -210,7 +208,8 @@ struct huffman_node *build_tree_from_frequency(const struct frequency_table *ft)
     unsigned int i;
     struct huffman_node *merged;
     int min1, min2;
-    bool create_Tree = true;
+    int create_Tree = 1;  // 1 = true, 0 = false
+
     
 
     if (ft == NULL) {

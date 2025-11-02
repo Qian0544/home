@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L //tells the compiler to enable POSIX features strtok_r
 #include <stdio.h>    /* FILE, printf, etc. */
 #include <stdlib.h>   /* malloc, free, etc. */
 #include <string.h>   /* strlen, strcpy, etc. */
@@ -129,7 +130,8 @@ static char* serializeEntries(const DiaryEntry* head, size_t* outSize) {
 // Parse text string back to linked list
 static DiaryEntry* deserializeEntries(const char* data, size_t dataSize) {
     DiaryEntry* head = NULL;
-    char* saveptr = NULL;
+    const char* ptr = data;
+    const char* end = data + dataSize;
     
     // Validate input data
     if (!data || dataSize == 0) {
@@ -137,52 +139,77 @@ static DiaryEntry* deserializeEntries(const char* data, size_t dataSize) {
         return NULL;
     }
     
+    printf("DEBUG: Starting deserialization, data size: %zu\n", dataSize);
+    printf("DEBUG: First 50 chars of data: %.50s\n", data);
+    
     // Check if data contains valid entry markers
     if (strstr(data, "ENTRY_START") == NULL) {
         printf("ERROR: No valid entry markers found in data\n");
         return NULL;
     }
     
-    // Make a copy of the data so we can use strtok_r safely
-    char* dataCopy = malloc(dataSize + 1);
-    if (!dataCopy) {
-        printf("ERROR: Failed to allocate memory for data copy\n");
-        return NULL;
-    }
-    memcpy(dataCopy, data, dataSize);
-    dataCopy[dataSize] = '\0';
-    
-    // First tokenize by ENTRY_START/ENTRY_END
-    char* token = strtok_r(dataCopy, "\n", &saveptr);
-    
-    while (token != NULL) {
-        if (strcmp(token, "ENTRY_START") == 0) {
-            // Start of a new entry
+    // Parse entries manually 
+    while (ptr < end) {
+        // Skip whitespace and newlines
+        while (ptr < end && (*ptr == '\n' || *ptr == '\r' || *ptr == ' ')) {
+            ptr++;
+        }
+        
+        if (ptr >= end) break;
+        
+        // Look for ENTRY_START
+        if (strncmp(ptr, "ENTRY_START", 11) == 0) {
+            ptr += 11;
+            
             char datetime[256] = {0};
             char content[10000] = {0};
             int wordCount = 0;
             int foundDate = 0;
             int foundContent = 0;
             
-            // Process lines until ENTRY_END
-            while ((token = strtok_r(NULL, "\n", &saveptr)) != NULL) {
-                if (strcmp(token, "ENTRY_END") == 0) {
+            // Process until ENTRY_END
+            while (ptr < end) {
+                // Skip to next line
+                while (ptr < end && (*ptr == '\n' || *ptr == '\r')) ptr++;
+                if (ptr >= end) break;
+                
+                // Check for ENTRY_END
+                if (strncmp(ptr, "ENTRY_END", 9) == 0) {
+                    ptr += 9;
                     break;
                 }
                 
-                // Check for DATE
-                if (strncmp(token, "DATE:", 5) == 0) {
-                    strncpy(datetime, token + 5, sizeof(datetime) - 1);
+                // Check for DATE:
+                if (strncmp(ptr, "DATE:", 5) == 0) {
+                    ptr += 5;
+                    size_t i = 0;
+                    while (ptr < end && *ptr != '\n' && *ptr != '\r' && i < sizeof(datetime) - 1) {
+                        datetime[i++] = *ptr++;
+                    }
+                    datetime[i] = '\0';
                     foundDate = 1;
+                   
                 }
-                // Check for CONTENT
-                else if (strncmp(token, "CONTENT:", 8) == 0) {
-                    strncpy(content, token + 8, sizeof(content) - 1);
+                // Check for CONTENT:
+                else if (strncmp(ptr, "CONTENT:", 8) == 0) {
+                    ptr += 8;
+                    size_t i = 0;
+                    while (ptr < end && *ptr != '\n' && *ptr != '\r' && i < sizeof(content) - 1) {
+                        content[i++] = *ptr++;
+                    }
+                    content[i] = '\0';
                     foundContent = 1;
                 }
-                // Check for WORDCOUNT
-                else if (strncmp(token, "WORDCOUNT:", 10) == 0) {
-                    wordCount = atoi(token + 10);
+                // Check for WORDCOUNT:
+                else if (strncmp(ptr, "WORDCOUNT:", 10) == 0) {
+                    ptr += 10;
+                    wordCount = atoi(ptr);
+                    // Skip to end of line
+                    while (ptr < end && *ptr != '\n' && *ptr != '\r') ptr++;
+                }
+                else {
+                    // Unknown line, skip it
+                    while (ptr < end && *ptr != '\n' && *ptr != '\r') ptr++;
                 }
             }
             
@@ -195,12 +222,12 @@ static DiaryEntry* deserializeEntries(const char* data, size_t dataSize) {
                 }
             }
         }
-        
-        // Get next token
-        token = strtok_r(NULL, "\n", &saveptr);
+        else {
+            // Not ENTRY_START, skip this character
+            ptr++;
+        }
     }
     
-    free(dataCopy);
     return head;
 }
 
